@@ -10,6 +10,7 @@ import numpy as np
 from tqdm import tqdm
 
 from defects_segmentation.defects import find_defects
+from defects_segmentation.io import save_text
 from defects_segmentation.io import save_json
 
 
@@ -107,10 +108,11 @@ def split_dataset(img_triplets, splits, split_ratios):
     return dataset
 
 
-def gen_defects(img_triplets, output_imgs_dir, output_labels_dir):
-    mkdir_p(output_imgs_dir)
-    mkdir_p(output_labels_dir)
+def gen_defects(img_triplets, output_root, output_imgs_dir, output_labels_dir):
+    mkdir_p(os.path.join(output_root, output_imgs_dir))
+    mkdir_p(os.path.join(output_root, output_labels_dir))
 
+    path_pairs = []
     for clean_dir, noisy_dir, img_name in tqdm(img_triplets):
         img_clean_path = os.path.join(clean_dir, img_name)
         img_noisy_path = os.path.join(noisy_dir, img_name)
@@ -135,7 +137,7 @@ def gen_defects(img_triplets, output_imgs_dir, output_labels_dir):
         contours = find_defects(img_clean, img_noisy)
 
         # Copy noisy image as the raw image.
-        copyfile(img_noisy_path, raw_img_path)
+        copyfile(img_noisy_path, os.path.join(output_root, raw_img_path))
 
         # Collect and save annotation data.
         label_dict = {
@@ -146,7 +148,7 @@ def gen_defects(img_triplets, output_imgs_dir, output_labels_dir):
                 "polygon": c.reshape(-1, 2).tolist(),
             } for c in contours],
         }
-        save_json(label_dict_path, label_dict)
+        save_json(os.path.join(output_root, label_dict_path), label_dict)
 
         # Collect and save labeled image.
         label_img = cv2.drawContours(
@@ -156,26 +158,45 @@ def gen_defects(img_triplets, output_imgs_dir, output_labels_dir):
             (LABEL_ID, LABEL_ID, LABEL_ID),
             -1,
         )
-        cv2.imwrite(label_img_path, label_img)
+        cv2.imwrite(os.path.join(output_root, label_img_path), label_img)
+
+        path_pairs.append((raw_img_path, label_img_path))
+
+    return path_pairs
+
+
+def gen_lst(path_pairs, output_dir, split):
+    mkdir_p(output_dir)
+
+    output_path = os.path.join(output_dir, "{}.txt".format(split))
+    text = "\n".join(["{}\t{}".format(r, l) for r, l in path_pairs])
+
+    save_text(output_path, text)
 
 
 def gen_dataset(dataset, output_root):
+    output_lst_dir = os.path.join(output_root, "list")
+
     for split, img_triplets in dataset.items():
         output_imgs_dir = os.path.join(
-            output_root,
             "leftImg8bit",
             LABEL_NAME,
             split,
         )
         output_labels_dir = os.path.join(
-            output_root,
             "gtFine",
             LABEL_NAME,
             split,
         )
 
         print("Generating for {} split".format(split))
-        gen_defects(img_triplets, output_imgs_dir, output_labels_dir)
+        path_pairs = gen_defects(
+            img_triplets,
+            output_root,
+            output_imgs_dir,
+            output_labels_dir,
+        )
+        gen_lst(path_pairs, output_lst_dir, split)
 
 
 def main(args):
