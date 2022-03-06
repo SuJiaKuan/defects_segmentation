@@ -168,7 +168,7 @@ def gen_defects(img_triplets, output_root, output_imgs_dir, output_labels_dir):
 def gen_lst(path_pairs, output_dir, split):
     mkdir_p(output_dir)
 
-    output_path = os.path.join(output_dir, "{}.txt".format(split))
+    output_path = os.path.join(output_dir, "{}.lst".format(split))
     text = "\n".join(["{}\t{}".format(r, l) for r, l in path_pairs])
 
     save_text(output_path, text)
