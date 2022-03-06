@@ -47,6 +47,13 @@ def main():
         (0, 255, 0),
         3,
     )
+    mask = cv2.drawContours(
+        np.zeros_like(img_noisy),
+        contours,
+        -1,
+        (255, 255, 255),
+        -1,
+    )
 
     cv2.imwrite("output.png", img_noisy_contours)
 
@@ -57,6 +64,7 @@ def main():
     imshow("Diff Blur", img_diff_blur)
     imshow("Diff Binary", img_diff_binary)
     imshow("Noisy Contours", img_noisy_contours)
+    imshow("Mask", mask)
     cv2.waitKey(0)
 
 
