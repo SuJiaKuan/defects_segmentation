@@ -1,10 +1,11 @@
 import argparse
-import json
 
 import cv2
 import cmapy
 import numpy as np
 import imutils
+
+from defects_segmentation.io import load_json
 
 
 def parse_args():
@@ -26,11 +27,6 @@ def parse_args():
     args = parser.parse_args()
 
     return args
-
-
-def load_json(file_path):
-    with open(file_path, "r") as f:
-        return json.load(f)
 
 
 def main(args):
