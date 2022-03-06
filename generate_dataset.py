@@ -5,6 +5,7 @@ import pathlib
 import random
 
 import cv2
+import numpy as np
 from tqdm import tqdm
 
 from defects_segmentation.defects import find_defects
@@ -12,6 +13,7 @@ from defects_segmentation.io import save_json
 
 
 LABEL_NAME = "defect"
+LABEL_ID = 1
 
 SPLITS = (
     "train",
@@ -113,6 +115,9 @@ def gen_defects(img_triplets, output_dir):
 
         contours = find_defects(img_clean, img_noisy)
 
+        img_id = os.path.splitext(img_name)[0]
+
+        # Collect and save annotation data.
         label_dict = {
             "imgHeight": img_clean.shape[0],
             "imgWidth": img_clean.shape[1],
@@ -121,12 +126,23 @@ def gen_defects(img_triplets, output_dir):
                 "polygon": c.reshape(-1, 2).tolist(),
             } for c in contours],
         }
-
-        output_path = os.path.join(
-            output_dir,
-            "{}.json".format(os.path.splitext(img_name)[0]),
+        save_json(
+            os.path.join(output_dir, "{}_polygons.json".format(img_id)),
+            label_dict,
         )
-        save_json(output_path, label_dict)
+
+        # Collect and save annotation data.
+        label_img = cv2.drawContours(
+            np.zeros_like(img_noisy),
+            contours,
+            -1,
+            (LABEL_ID, LABEL_ID, LABEL_ID),
+            -1,
+        )
+        cv2.imwrite(
+            os.path.join(output_dir, "{}_labelIds.png".format(img_id)),
+            label_img,
+        )
 
 
 def gen_dataset(dataset, output_root):
