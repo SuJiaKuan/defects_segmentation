@@ -158,4 +158,5 @@ tags
 [._]*.un~
 
 # Default paths to generated files /directories
+/output
 /output.png
