@@ -2,15 +2,22 @@ import argparse
 import glob
 import os
 import pathlib
-from tqdm import tqdm
+import random
 
 import cv2
+from tqdm import tqdm
 
 from defects_segmentation.defects import find_defects
 from defects_segmentation.io import save_json
 
 
 LABEL_NAME = "defect"
+
+SPLITS = (
+    "train",
+    "val",
+    "test",
+)
 
 
 def parse_args():
@@ -22,6 +29,20 @@ def parse_args():
         "imgs_dir",
         type=str,
         help="Input images root directory",
+    )
+    parser.add_argument(
+        "-v",
+        "--val",
+        type=float,
+        default=0.1,
+        help="Ratio of validation set",
+    )
+    parser.add_argument(
+        "-t",
+        "--test",
+        type=float,
+        default=0.1,
+        help="Ratio of test set",
     )
     parser.add_argument(
         "-o",
@@ -58,8 +79,33 @@ def search_image_triplets(imgs_root):
     return [(clean_dir, noisy_dir, n) for n in img_names]
 
 
-def gen_defects(img_triplets, output_root):
-    mkdir_p(output_root)
+def split_dataset(img_triplets, splits, split_ratios):
+    triplet_indices = list(range(len(img_triplets)))
+    random.shuffle(triplet_indices)
+
+    dataset = {s: [] for s in splits}
+
+    triplets_len = len(triplet_indices)
+    start_idx = 0
+    for split_idx, (split, split_ratio) \
+            in enumerate(zip(splits, split_ratios)):
+        split_len = int(triplets_len * split_ratio)
+        if split_idx == len(splits) - 1:
+            split_triplet_indices = triplet_indices[start_idx:]
+        else:
+            split_triplet_indices = \
+                triplet_indices[start_idx:start_idx+split_len]
+
+        for triplet_idx in split_triplet_indices:
+            dataset[split].append(img_triplets[triplet_idx])
+
+        start_idx = start_idx + split_len
+
+    return dataset
+
+
+def gen_defects(img_triplets, output_dir):
+    mkdir_p(output_dir)
 
     for clean_dir, noisy_dir, img_name in tqdm(img_triplets):
         img_clean = cv2.imread(os.path.join(clean_dir, img_name))
@@ -77,15 +123,29 @@ def gen_defects(img_triplets, output_root):
         }
 
         output_path = os.path.join(
-            output_root,
+            output_dir,
             "{}.json".format(os.path.splitext(img_name)[0]),
         )
         save_json(output_path, label_dict)
 
 
+def gen_dataset(dataset, output_root):
+    for split, img_triplets in dataset.items():
+        print("Generating for {} split".format(split))
+        output_dir = os.path.join(output_root, "gtFine", LABEL_NAME, split)
+        gen_defects(img_triplets, output_dir)
+
+
 def main(args):
+    split_ratios = (
+        (1.0 - args.val - args.test),
+        args.val,
+        args.test,
+    )
+
     img_triplets = search_image_triplets(args.imgs_dir)
-    gen_defects(img_triplets, args.output)
+    dataset = split_dataset(img_triplets, SPLITS, split_ratios)
+    gen_dataset(dataset, args.output)
 
     print("Results saved in {}".format(args.output))
 
