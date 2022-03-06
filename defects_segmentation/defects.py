@@ -18,7 +18,7 @@ def find_defects(
         255,
         cv2.THRESH_BINARY,
     )
-    _, contours, hierarchy = cv2.findContours(
+    contours, hierarchy = cv2.findContours(
         img_diff_binary,
         cv2.RETR_TREE,
         cv2.CHAIN_APPROX_SIMPLE,
