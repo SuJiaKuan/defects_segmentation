@@ -23,6 +23,13 @@ def parse_args():
         type=str,
         help="Input label JSON path",
     )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        default="output.png",
+        help="Output path",
+    )
 
     args = parser.parse_args()
 
@@ -52,6 +59,9 @@ def main(args):
 
     cv2.imshow("Drawn", imutils.resize(drawn, width=800))
     cv2.waitKey(0)
+
+    cv2.imwrite(args.output, drawn)
+    print("Result saved in {}".format(args.output))
 
 
 if __name__ == "__main__":
