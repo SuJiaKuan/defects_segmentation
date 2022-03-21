@@ -49,6 +49,13 @@ def parse_args():
         help="Ratio of test set",
     )
     parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=9487,
+        help="Random seed",
+    )
+    parser.add_argument(
         "-o",
         "--output",
         type=str,
@@ -200,6 +207,8 @@ def gen_dataset(dataset, output_root):
 
 
 def main(args):
+    random.seed(args.seed)
+
     split_ratios = (
         (1.0 - args.val - args.test),
         args.val,
