@@ -49,6 +49,13 @@ def parse_args():
         help="Ratio of test set",
     )
     parser.add_argument(
+        "-l",
+        "--limit",
+        type=int,
+        default=None,
+        help="Limit number of output images",
+    )
+    parser.add_argument(
         "-s",
         "--seed",
         type=int,
@@ -216,6 +223,10 @@ def main(args):
     )
 
     img_triplets = search_image_triplets(args.imgs_dir)
+
+    if args.limit is not None:
+        img_triplets = img_triplets[:args.limit]
+
     dataset = split_dataset(img_triplets, SPLITS, split_ratios)
     gen_dataset(dataset, args.output)
 
