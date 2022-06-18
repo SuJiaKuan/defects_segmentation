@@ -1,6 +1,6 @@
-# Defects Segmentation
+# Defects Segmentation Tools
 
-Tools about defects segmentation.
+Tools for defects segmentation.
 
 ## Prerequisites
 
