@@ -1,28 +1,50 @@
+import argparse
 import os
 
 import numpy as np
 import cv2
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Development script for semantic segmentation dataset "
+                    "generation",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "img_clean",
+        type=str,
+        help="Input clean image path",
+    )
+    parser.add_argument(
+        "img_noisy",
+        type=str,
+        help="Input noisy image path",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        default="output.png",
+        help="Output path",
+    )
+
+    args = parser.parse_args()
+
+    return args
+
+
 def imshow(winname, img):
     cv2.imshow(winname, cv2.resize(img, (960, 540)))
 
 
-def main():
-    clean_dir = "/data/feabries/video_restoration/mazu_7200/images/clean"
-    noisy_dir = "/data/feabries/video_restoration/mazu_7200/images/noisy"
-
-    img_idx = 11
+def main(args):
     binary_threshold = 50
     kernel_size = 3
     area_threshold = 10
 
-    img_filename = "{}.png".format(str(img_idx).zfill(8))
-    img_clean_filepath = os.path.join(clean_dir, img_filename)
-    img_noisy_filepath = os.path.join(noisy_dir, img_filename)
-
-    img_clean = cv2.imread(img_clean_filepath)
-    img_noisy = cv2.imread(img_noisy_filepath)
+    img_clean = cv2.imread(args.img_clean)
+    img_noisy = cv2.imread(args.img_noisy)
 
     img_diff = cv2.absdiff(img_clean, img_noisy)
     img_diff_gray = np.max(img_diff, axis=2)
@@ -33,7 +55,7 @@ def main():
         255,
         cv2.THRESH_BINARY,
     )
-    _, contours, hierarchy = cv2.findContours(
+    contours, hierarchy = cv2.findContours(
         img_diff_binary,
         cv2.RETR_TREE,
         cv2.CHAIN_APPROX_SIMPLE,
@@ -55,7 +77,7 @@ def main():
         -1,
     )
 
-    cv2.imwrite("output.png", img_noisy_contours)
+    cv2.imwrite(args.output, img_noisy_contours)
 
     imshow("Clean", img_clean)
     imshow("Noisy", img_noisy)
@@ -69,4 +91,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(parse_args())
