@@ -30,9 +30,10 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "imgs_dir",
+        "imgs_dirs",
         type=str,
-        help="Input images root directory",
+        nargs="+",
+        help="Input images root directories",
     )
     parser.add_argument(
         "-v",
@@ -87,6 +88,8 @@ def search_images(imgs_dir):
 
 
 def search_image_triplets(imgs_root):
+    collection_id = os.path.split(imgs_root)[-1]
+
     clean_dir = os.path.join(imgs_root, "clean")
     noisy_dir = os.path.join(imgs_root, "noisy")
 
@@ -94,12 +97,11 @@ def search_image_triplets(imgs_root):
     img_noisy_names = search_images(noisy_dir)
     img_names = sorted(list(set(img_clean_names) & set(img_noisy_names)))
 
-    return [(clean_dir, noisy_dir, n) for n in img_names]
+    return [(collection_id, clean_dir, noisy_dir, n) for n in img_names]
 
 
 def split_dataset(img_triplets, splits, split_ratios):
     triplet_indices = list(range(len(img_triplets)))
-    random.shuffle(triplet_indices)
 
     dataset = {s: [] for s in splits}
 
@@ -127,11 +129,11 @@ def gen_defects(img_triplets, output_root, output_imgs_dir, output_labels_dir):
     mkdir_p(os.path.join(output_root, output_labels_dir))
 
     path_pairs = []
-    for clean_dir, noisy_dir, img_name in tqdm(img_triplets):
+    for collection_id, clean_dir, noisy_dir, img_name in tqdm(img_triplets):
         img_clean_path = os.path.join(clean_dir, img_name)
         img_noisy_path = os.path.join(noisy_dir, img_name)
 
-        img_id = os.path.splitext(img_name)[0]
+        img_id = "{}_{}".format(collection_id, os.path.splitext(img_name)[0])
         raw_img_path = os.path.join(
             output_imgs_dir,
             "{}_leftImg8bit.png".format(img_id),
@@ -222,7 +224,11 @@ def main(args):
         args.test,
     )
 
-    img_triplets = search_image_triplets(args.imgs_dir)
+    img_triplets = []
+    for imgs_dir in args.imgs_dirs:
+        img_triplets += search_image_triplets(imgs_dir)
+
+    random.shuffle(img_triplets)
 
     if args.limit is not None:
         img_triplets = img_triplets[:args.limit]
